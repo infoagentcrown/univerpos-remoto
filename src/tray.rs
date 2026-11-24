@@ -47,19 +47,25 @@ fn make_tray() -> hbb_common::ResultType<()> {
     }
     #[cfg(not(target_os = "macos"))]
     {
-        icon = include_bytes!("../res/tray-icon.ico");
+        // Univerpos: icono apagado (nadie conectado).
+        icon = include_bytes!("../res/tray-off.png");
     }
 
-    let (icon_rgba, icon_width, icon_height) = {
-        let image = load_icon_from_asset()
-            .unwrap_or(image::load_from_memory(icon).context("Failed to open icon path")?)
+    let load = |bytes: &[u8]| -> hbb_common::ResultType<tray_icon::Icon> {
+        let image = image::load_from_memory(bytes)
+            .context("Failed to open icon path")?
             .into_rgba8();
         let (width, height) = image.dimensions();
-        let rgba = image.into_raw();
-        (rgba, width, height)
+        Ok(tray_icon::Icon::from_rgba(image.into_raw(), width, height)
+            .context("Failed to open icon")?)
     };
-    let icon = tray_icon::Icon::from_rgba(icon_rgba, icon_width, icon_height)
-        .context("Failed to open icon")?;
+    let _ = load_icon_from_asset;
+    let icon = load(&icon[..])?;
+    // Univerpos: icono encendido (hay un técnico conectado).
+    #[cfg(windows)]
+    let icon_on = load(&include_bytes!("../res/tray-on.png")[..])?;
+    #[cfg(windows)]
+    let icon_off = icon.clone();
 
     let mut event_loop = EventLoopBuilder::new().build();
 
@@ -82,18 +88,9 @@ fn make_tray() -> hbb_common::ResultType<()> {
     }
     let tooltip = |count: usize| {
         if count == 0 {
-            format!(
-                "{} {}",
-                crate::get_app_name(),
-                translate("Service is running".to_owned()),
-            )
+            format!("{} · Nadie conectado", crate::get_app_name())
         } else {
-            format!(
-                "{} - {}\n{}",
-                crate::get_app_name(),
-                translate("Ready".to_owned()),
-                translate("{".to_string() + &format!("{count}") + "} sessions"),
-            )
+            format!("{} · Hay un técnico conectado", crate::get_app_name())
         }
     };
     let mut _tray_icon: Arc<Mutex<Option<TrayIcon>>> = Default::default();
@@ -250,11 +247,15 @@ fn make_tray() -> hbb_common::ResultType<()> {
         if let Ok(data) = ipc_receiver.try_recv() {
             match data {
                 Data::ControlledSessionCount(count) => {
-                    _tray_icon
-                        .lock()
-                        .unwrap()
-                        .as_mut()
-                        .map(|t| t.set_tooltip(Some(tooltip(count))));
+                    if let Some(t) = _tray_icon.lock().unwrap().as_mut() {
+                        t.set_tooltip(Some(tooltip(count))).ok();
+                        let next = if count > 0 {
+                            icon_on.clone()
+                        } else {
+                            icon_off.clone()
+                        };
+                        t.set_icon(Some(next)).ok();
+                    }
                 }
                 _ => {}
             }

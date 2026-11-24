@@ -24,6 +24,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:window_size/window_size.dart' as window_size;
 import '../widgets/button.dart';
+import 'package:flutter_hbb/univerpos.dart';
 
 class DesktopHomePage extends StatefulWidget {
   const DesktopHomePage({Key? key}) : super(key: key);
@@ -80,18 +81,21 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     final isOutgoingOnly = bind.isOutgoingOnly();
     final children = <Widget>[
       if (!isOutgoingOnly) buildPresetPasswordWarning(),
-      if (bind.isCustomClient())
+      // Univerpos: el cliente solo ve su número de soporte.
+      if (isIncomingOnly) UvClientIdCard(serverId: gFFI.serverModel.serverId),
+      if (!isIncomingOnly && bind.isCustomClient())
         Align(
           alignment: Alignment.center,
           child: loadPowered(context),
         ),
-      Align(
-        alignment: Alignment.center,
-        child: loadLogo(),
-      ),
-      buildTip(context),
-      if (!isOutgoingOnly) buildIDBoard(context),
-      if (!isOutgoingOnly) buildPasswordBoard(context),
+      if (!isIncomingOnly)
+        Align(
+          alignment: Alignment.center,
+          child: loadLogo(),
+        ),
+      if (!isIncomingOnly) buildTip(context),
+      if (!isOutgoingOnly && !isIncomingOnly) buildIDBoard(context),
+      if (!isOutgoingOnly && !isIncomingOnly) buildPasswordBoard(context),
       FutureBuilder<Widget>(
         future: Future.value(
             Obx(() => buildHelpCards(stateGlobal.updateUrl.value))),
@@ -130,7 +134,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       value: gFFI.serverModel,
       child: Container(
         width: isIncomingOnly ? 280.0 : 200.0,
-        color: Theme.of(context).colorScheme.background,
+        color: isIncomingOnly
+            ? Colors.white
+            : Theme.of(context).colorScheme.background,
         child: Stack(
           children: [
             Column(

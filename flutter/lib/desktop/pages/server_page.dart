@@ -21,6 +21,7 @@ import '../../common/widgets/chat_page.dart';
 import '../../models/file_model.dart';
 import '../../models/platform_model.dart';
 import '../../models/server_model.dart';
+import '../../univerpos.dart';
 
 /// Set only by this window's own close control, and only once the user has confirmed. Any other
 /// way the window can go - a session logout closing every window, the window manager, a native
@@ -371,7 +372,8 @@ Widget buildConnectionCard(Client client) {
         client.type_() == ClientType.file ||
                 client.type_() == ClientType.portForward ||
                 client.type_() == ClientType.terminal ||
-                client.disconnected
+                client.disconnected ||
+                bind.isIncomingOnly()
             ? Offstage()
             : _PrivilegeBoard(client: client),
         Expanded(
@@ -455,126 +457,127 @@ class _CmHeaderState extends State<_CmHeader>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    // Univerpos: tarjeta minimalista con franja verde y técnico identificado.
+    final peer = UvPeer.parse(client.name, client.peerId);
+    String? kind;
+    if (client.type_() == ClientType.terminal) kind = translate("Terminal");
+    if (client.type_() == ClientType.file) kind = translate("Transfer file");
+    if (client.type_() == ClientType.camera) kind = translate("View camera");
+    if (client.portForward.isNotEmpty) kind = "Port Forward: ${client.portForward}";
+    final showChat = client.authorized &&
+        (client.type_() == ClientType.remote ||
+            client.type_() == ClientType.file ||
+            client.type_() == ClientType.camera);
     return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10.0),
-        gradient: LinearGradient(
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-          colors: [
-            Color(0xff00bfe1),
-            Color(0xff0071ff),
-          ],
-        ),
-      ),
       margin: EdgeInsets.symmetric(horizontal: 5.0, vertical: 10.0),
-      padding: EdgeInsets.only(
-        top: 10.0,
-        bottom: 10.0,
-        left: 10.0,
-        right: 5.0,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildClientAvatar().marginOnly(right: 10.0),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                FittedBox(
-                    child: Text(
-                  client.name,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  maxLines: 1,
-                )),
-                FittedBox(
-                  child: Text(
-                    "(${client.peerId})",
-                    style: TextStyle(color: Colors.white, fontSize: 14),
-                  ),
-                ),
-                if (client.type_() == ClientType.terminal)
-                  FittedBox(
-                    child: Text(
-                      translate("Terminal"),
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                  ),
-                if (client.type_() == ClientType.file)
-                  FittedBox(
-                    child: Text(
-                      translate("Transfer file"),
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                  ),
-                if (client.type_() == ClientType.camera)
-                  FittedBox(
-                    child: Text(
-                      translate("View camera"),
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                  ),
-                if (client.portForward.isNotEmpty)
-                  FittedBox(
-                    child: Text(
-                      "Port Forward: ${client.portForward}",
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                  ),
-                SizedBox(height: 10.0),
-                FittedBox(
-                    child: Row(
-                  children: [
-                    Text(
-                      client.authorized
-                          ? client.disconnected
-                              ? translate("Disconnected")
-                              : translate("Connected")
-                          : "${translate("Request access to your device")}...",
-                      style: TextStyle(color: Colors.white),
-                    ).marginOnly(right: 8.0),
-                    if (client.authorized)
-                      Obx(
-                        () => Text(
-                          formatDurationToTime(
-                            Duration(seconds: _time.value),
-                          ),
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      )
-                  ],
-                ))
-              ],
-            ),
-          ),
-          Offstage(
-            offstage: !client.authorized ||
-                (client.type_() != ClientType.remote &&
-                    client.type_() != ClientType.file &&
-                    client.type_() != ClientType.camera),
-            child: IconButton(
-              onPressed: () => checkClickTime(client.id, () {
-                if (client.type_() == ClientType.file) {
-                  gFFI.chatModel.toggleCMFilePage();
-                } else {
-                  gFFI.chatModel
-                      .toggleCMChatPage(MessageKey(client.peerId, client.id));
-                }
-              }),
-              icon: SvgPicture.asset(client.type_() == ClientType.file
-                  ? 'assets/file_transfer.svg'
-                  : 'assets/chat2.svg'),
-              splashRadius: kDesktopIconButtonSplashRadius,
-            ),
-          )
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12.0),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 16,
+              offset: Offset(0, 4))
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12.0),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(left: BorderSide(color: kUvGreen, width: 3)),
+          ),
+          padding: EdgeInsets.fromLTRB(16, 16, 8, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  _buildClientAvatar().marginOnly(right: 12.0),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          peer.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: kUvInk,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16),
+                        ),
+                        Text(
+                          peer.subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: kUvMuted, fontSize: 12.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (showChat)
+                    IconButton(
+                      onPressed: () => checkClickTime(client.id, () {
+                        if (client.type_() == ClientType.file) {
+                          gFFI.chatModel.toggleCMFilePage();
+                        } else {
+                          gFFI.chatModel.toggleCMChatPage(
+                              MessageKey(client.peerId, client.id));
+                        }
+                      }),
+                      icon: SvgPicture.asset(
+                        client.type_() == ClientType.file
+                            ? 'assets/file_transfer.svg'
+                            : 'assets/chat2.svg',
+                        colorFilter:
+                            ColorFilter.mode(kUvGreen, BlendMode.srcIn),
+                      ),
+                      splashRadius: kDesktopIconButtonSplashRadius,
+                    ),
+                ],
+              ),
+              if (peer.verified) uvVerifiedPill().marginOnly(top: 12),
+              SizedBox(height: 14),
+              if (!client.authorized) ...[
+                Text('Quiere acceder a su equipo.',
+                    style: TextStyle(color: kUvInk, fontSize: 14)),
+                SizedBox(height: 3),
+                Text('Acepte solo si está hablando con nosotros.',
+                    style: TextStyle(color: kUvMuted, fontSize: 12.5)),
+              ] else
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                          color: client.disconnected
+                              ? kUvMuted
+                              : kUvGreen,
+                          shape: BoxShape.circle),
+                    ).marginOnly(right: 8),
+                    Text(
+                      client.disconnected ? 'Desconectado' : 'Conectado',
+                      style: TextStyle(color: kUvInk, fontSize: 13),
+                    ),
+                    Spacer(),
+                    Obx(
+                      () => Text(
+                        formatDurationToTime(Duration(seconds: _time.value)),
+                        style: TextStyle(
+                            color: kUvInk,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ).marginOnly(right: 8),
+                  ],
+                ),
+              if (kind != null)
+                Text(kind, style: TextStyle(color: kUvMuted, fontSize: 12))
+                    .marginOnly(top: 6),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -585,32 +588,21 @@ class _CmHeaderState extends State<_CmHeader>
   Widget _buildClientAvatar() {
     return buildAvatarWidget(
           avatar: client.avatar,
-          size: 70,
-          borderRadius: 15,
+          size: 44,
+          borderRadius: 22,
           fallback: _buildInitialAvatar(),
         ) ??
         _buildInitialAvatar();
   }
 
+  Widget _buildUvInitials() =>
+      uvInitialsAvatar(UvPeer.parse(client.name, client.peerId).initials);
+
   Widget _buildInitialAvatar() {
-    return Container(
-      width: 70,
-      height: 70,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: str2color(client.name),
-        borderRadius: BorderRadius.circular(15.0),
-      ),
-      child: Text(
-        client.name.isNotEmpty ? client.name[0] : '?',
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-          fontSize: 55,
-        ),
-      ),
-    );
+    return _buildUvInitials();
   }
+
+
 }
 
 class _PrivilegeBoard extends StatefulWidget {
@@ -1038,9 +1030,9 @@ class _CmControlPanel extends StatelessWidget {
           children: [
             Expanded(
               child: buildButton(context,
-                  color: Colors.redAccent,
+                  color: Color(0xffB91C1C),
                   onClick: handleDisconnect,
-                  text: 'Disconnect',
+                  text: 'Terminar',
                   icon: Icon(
                     Icons.link_off_rounded,
                     color: Colors.white,
@@ -1060,9 +1052,9 @@ class _CmControlPanel extends StatelessWidget {
       children: [
         Expanded(
             child: buildButton(context,
-                color: MyTheme.accent,
+                color: kUvInk,
                 onClick: handleClose,
-                text: 'Close',
+                text: 'Cerrar',
                 textColor: Colors.white)),
       ],
     ).marginOnly(bottom: buttonBottomMargin);
@@ -1106,12 +1098,12 @@ class _CmControlPanel extends StatelessWidget {
                   children: [
                     buildButton(
                       context,
-                      color: MyTheme.accent,
+                      color: kUvGreen,
                       onClick: () {
                         handleAccept(context);
                         windowManager.minimize();
                       },
-                      text: 'Accept',
+                      text: 'Permitir',
                       textColor: Colors.white,
                     ),
                   ],
@@ -1120,11 +1112,11 @@ class _CmControlPanel extends StatelessWidget {
             Expanded(
               child: buildButton(
                 context,
-                color: Colors.transparent,
-                border: Border.all(color: Colors.grey),
+                color: Colors.white,
+                border: Border.all(color: kUvLine),
                 onClick: handleDisconnect,
-                text: 'Cancel',
-                textColor: null,
+                text: 'Rechazar',
+                textColor: kUvInk,
               ),
             ),
           ],
@@ -1147,21 +1139,21 @@ class _CmControlPanel extends StatelessWidget {
     if (icon != null) {
       textWidget = Text(
         translate(text),
-        style: TextStyle(color: textColor),
+        style: TextStyle(color: textColor, fontWeight: FontWeight.w600),
         textAlign: TextAlign.center,
       );
     } else {
       textWidget = Expanded(
         child: Text(
           translate(text),
-          style: TextStyle(color: textColor),
+          style: TextStyle(color: textColor, fontWeight: FontWeight.w600),
           textAlign: TextAlign.center,
         ),
       );
     }
-    final borderRadius = BorderRadius.circular(10.0);
+    final borderRadius = BorderRadius.circular(8.0);
     final btn = Container(
-      height: 28,
+      height: 40,
       decoration: BoxDecoration(
           color: color, borderRadius: borderRadius, border: border),
       child: InkWell(

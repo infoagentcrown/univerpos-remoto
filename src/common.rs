@@ -2515,7 +2515,27 @@ pub fn rustdesk_interval(i: Interval) -> ThrottledInterval {
     ThrottledInterval::new(i)
 }
 
+/// Univerpos: marca y modo (cliente / técnico) fijados en compilación.
+/// UNIVERPOS_ROL=tecnico -> versión completa; cualquier otro valor -> solo recibir.
+fn apply_univerpos() {
+    *config::APP_NAME.write().unwrap() = "Univerpos".to_owned();
+    let rol = option_env!("UNIVERPOS_ROL").unwrap_or("cliente");
+    let mut builtin = config::BUILTIN_SETTINGS.write().unwrap();
+    builtin.insert("hide-powered-by-me".to_owned(), "Y".to_owned());
+    drop(builtin);
+    if rol != "tecnico" {
+        config::HARD_SETTINGS
+            .write()
+            .unwrap()
+            .insert("conn-type".to_owned(), "incoming".to_owned());
+        let mut ow = config::OVERWRITE_SETTINGS.write().unwrap();
+        // El cliente acepta con un clic; no hay contraseña que dictar.
+        ow.insert("approve-mode".to_owned(), "click".to_owned());
+    }
+}
+
 pub fn load_custom_client() {
+    apply_univerpos();
     #[cfg(debug_assertions)]
     if let Ok(data) = std::fs::read_to_string("./custom.txt") {
         read_custom_client(data.trim());
