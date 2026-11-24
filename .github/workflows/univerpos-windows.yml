@@ -32,7 +32,7 @@ jobs:
       - name: flutter analyze
         run: |
           cd flutter && flutter pub get
-          flutter analyze --no-fatal-infos --no-fatal-warnings lib/univerpos.dart lib/desktop/pages/server_page.dart lib/desktop/pages/desktop_home_page.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings lib/univerpos.dart lib/desktop/pages/server_page.dart lib/desktop/pages/desktop_home_page.dart lib/desktop/pages/uv_tech_home.dart
 
   build:
     name: windows-${{ matrix.rol }}

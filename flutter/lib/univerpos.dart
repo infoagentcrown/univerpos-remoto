@@ -27,16 +27,18 @@ Widget uvSvg(String svg, double size) =>
 class UvPeer {
   final String name;
   final String subtitle;
+  final String ticket;
   final bool verified;
-  UvPeer(this.name, this.subtitle, this.verified);
+  UvPeer(this.name, this.subtitle, this.ticket, this.verified);
 
+  /// Formato: "Nombre Apellido|Técnico · Nº 004|29308" (tiquet opcional).
   factory UvPeer.parse(String raw, String peerId) {
-    final i = raw.indexOf('|');
-    if (i > 0) {
-      return UvPeer(raw.substring(0, i).trim(), raw.substring(i + 1).trim(), true);
+    final parts = raw.split('|').map((e) => e.trim()).toList();
+    if (parts.length >= 2 && parts[0].isNotEmpty) {
+      return UvPeer(parts[0], parts[1], parts.length > 2 ? parts[2] : '', true);
     }
     return UvPeer(raw.trim().isEmpty ? 'Desconocido' : raw.trim(),
-        'Equipo $peerId', false);
+        'Equipo $peerId', '', false);
   }
 
   String get initials {
@@ -149,3 +151,39 @@ class UvClientIdCard extends StatelessWidget {
     );
   }
 }
+
+/// Aviso discreto para instalar (sustituye al recuadro rosa de RustDesk).
+Widget uvInstallHint(VoidCallback onPressed) => Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 18),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: kUvGreenBg,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(children: [
+          const Text(
+            'Instale Univerpos para que el técnico pueda ayudarle también con las ventanas de administrador.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: kUvGreen, fontSize: 12, height: 1.4),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            height: 36,
+            child: TextButton(
+              onPressed: onPressed,
+              style: TextButton.styleFrom(
+                backgroundColor: kUvGreen,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Instalar',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+            ),
+          ),
+        ]),
+      ),
+    );

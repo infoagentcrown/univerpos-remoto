@@ -217,7 +217,11 @@ class ConnectionManagerState extends State<ConnectionManager>
                     Tooltip(
                         message: key,
                         waitDuration: Duration(seconds: 1),
-                        child: label),
+                        child: bind.isIncomingOnly()
+                            ? Text('Univerpos',
+                                style: TextStyle(
+                                    color: kUvMuted, fontSize: 12))
+                            : label),
                     unreadMessageCountBuilder(client?.unreadChatMessageCount)
                         .marginOnly(left: 4),
                   ],
@@ -268,7 +272,9 @@ class ConnectionManagerState extends State<ConnectionManager>
                                   ))),
                   ]);
                   return Container(
-                    color: Theme.of(context).scaffoldBackgroundColor,
+                    color: bind.isIncomingOnly()
+                        ? Colors.white
+                        : Theme.of(context).scaffoldBackgroundColor,
                     child: row,
                   );
                 },
@@ -362,6 +368,23 @@ class ConnectionManagerState extends State<ConnectionManager>
 }
 
 Widget buildConnectionCard(Client client) {
+  if (bind.isIncomingOnly()) {
+    // Univerpos: tarjeta y botones juntos, sobre fondo blanco.
+    return Consumer<ServerModel>(
+      builder: (context, value, child) => Container(
+        color: Colors.white,
+        key: ValueKey(client.id),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _CmHeader(client: client),
+            _CmControlPanel(client: client).paddingSymmetric(horizontal: 14),
+            Expanded(child: SizedBox()),
+          ],
+        ),
+      ),
+    );
+  }
   return Consumer<ServerModel>(
     builder: (context, value, child) => Column(
       mainAxisAlignment: MainAxisAlignment.start,
@@ -469,24 +492,15 @@ class _CmHeaderState extends State<_CmHeader>
             client.type_() == ClientType.file ||
             client.type_() == ClientType.camera);
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 5.0, vertical: 10.0),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12.0),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 16,
-              offset: Offset(0, 4))
-        ],
-      ),
+      margin: EdgeInsets.only(top: 6.0),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12.0),
+        borderRadius: BorderRadius.circular(2.0),
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
             border: Border(left: BorderSide(color: kUvGreen, width: 3)),
           ),
-          padding: EdgeInsets.fromLTRB(16, 16, 8, 16),
+          padding: EdgeInsets.fromLTRB(18, 18, 8, 6),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -542,8 +556,12 @@ class _CmHeaderState extends State<_CmHeader>
                 Text('Quiere acceder a su equipo.',
                     style: TextStyle(color: kUvInk, fontSize: 14)),
                 SizedBox(height: 3),
-                Text('Acepte solo si está hablando con nosotros.',
-                    style: TextStyle(color: kUvMuted, fontSize: 12.5)),
+                Text(
+                    peer.ticket.isNotEmpty
+                        ? 'Tiquet ${peer.ticket}. Acepte solo si está hablando con nosotros.'
+                        : 'Acepte solo si está hablando con nosotros.',
+                    style: TextStyle(
+                        color: kUvMuted, fontSize: 12.5, height: 1.4)),
               ] else
                 Row(
                   children: [

@@ -2522,6 +2522,12 @@ fn apply_univerpos() {
     let rol = option_env!("UNIVERPOS_ROL").unwrap_or("cliente");
     let mut builtin = config::BUILTIN_SETTINGS.write().unwrap();
     builtin.insert("hide-powered-by-me".to_owned(), "Y".to_owned());
+    if rol != "tecnico" {
+        builtin.insert(
+            "hide-elevate-button-in-accept-window".to_owned(),
+            "Y".to_owned(),
+        );
+    }
     drop(builtin);
     if rol != "tecnico" {
         config::HARD_SETTINGS

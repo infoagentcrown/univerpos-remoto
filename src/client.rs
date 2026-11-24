@@ -3803,6 +3803,8 @@ impl LoginConfigHandler {
             .unwrap_or_default();
         }
         avatar = resolve_avatar_url(avatar);
+        // Univerpos: identidad del técnico ("Nombre|Puesto · Nº|Tiquet"), sin retocar.
+        let univerpos_display = LocalConfig::get_option("univerpos-display");
         let mut display_name = get_builtin_option(keys::OPTION_DISPLAY_NAME);
         if display_name.is_empty() {
             display_name =
@@ -3837,6 +3839,11 @@ impl LoginConfigHandler {
             })
             .collect::<Vec<_>>()
             .join(" ");
+        let display_name = if univerpos_display.trim().is_empty() {
+            display_name
+        } else {
+            univerpos_display.trim().to_owned()
+        };
         #[cfg(not(target_os = "android"))]
         let my_platform = hbb_common::whoami::platform().to_string();
         #[cfg(target_os = "android")]

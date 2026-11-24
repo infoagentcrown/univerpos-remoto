@@ -25,6 +25,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:window_size/window_size.dart' as window_size;
 import '../widgets/button.dart';
 import 'package:flutter_hbb/univerpos.dart';
+import 'package:flutter_hbb/desktop/pages/uv_tech_home.dart';
 
 class DesktopHomePage extends StatefulWidget {
   const DesktopHomePage({Key? key}) : super(key: key);
@@ -60,6 +61,10 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   Widget build(BuildContext context) {
     super.build(context);
     final isIncomingOnly = bind.isIncomingOnly();
+    // Univerpos: la versión del técnico usa su propio panel.
+    if (!isIncomingOnly) {
+      return _buildBlock(child: const UvTechHome());
+    }
     return _buildBlock(
         child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -605,6 +610,10 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       String? link,
       bool? closeButton,
       String? closeOption}) {
+    if (bind.isIncomingOnly()) {
+      // Univerpos: nada de recuadros llamativos en la ventana del cliente.
+      return btnText.isEmpty ? const SizedBox.shrink() : uvInstallHint(onPressed);
+    }
     if (bind.mainGetBuildinOption(key: kOptionHideHelpCards) == 'Y' &&
         content != 'install_daemon_tip') {
       return const SizedBox();
